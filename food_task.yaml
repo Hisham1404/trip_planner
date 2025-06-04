@@ -1,0 +1,189 @@
+name: Food Tour Planning Task
+description:  Agent that creates delightful one-day food tours with weather-optimized dining recommendations, featuring 3 iconic local dishes per city and top-rated restaurants.
+
+input_schema:
+  type: object
+  properties:
+    cities:
+      type: array
+      items:
+        type: string
+      description: The cities to create food tours for.
+
+
+tools:
+- name: weather
+  type: integration
+  integration:
+    provider: weather
+    setup:
+      openweathermap_api_key: "fd67790ad271d6b486f951b3748dcb62"
+
+- name: internet_search
+  type: integration
+  integration:
+    provider: brave
+    setup:
+      brave_api_key: "BSA0MPVa8Wme1cgCm8ftWNu1VN-IXbw"
+
+- name: wikipedia
+  type: integration
+  integration:
+    provider: wikipedia
+
+
+main:
+# Step 1: Get current weather for all cities
+- over: $ steps[0].input.cities
+  map:
+    tool: weather
+    arguments:
+      location: $ _
+
+# Step 2: Search for iconic local dishes for each city
+- over: $ steps[0].input.cities
+  map:
+    tool: internet_search
+    arguments:
+      query: $ '"iconic local dishes" "traditional food" "must try" "famous cuisine" ' + _ + ' specialties'
+
+# Step 3: Search for top-rated restaurants in each city
+- over: $ steps[0].input.cities
+  map:
+    tool: internet_search
+    arguments:
+      query: $ 'top rated restaurants best dining experience in ' + _ + ' and reviews of that.'
+
+# Step 4: Get additional food culture information from Wikipedia
+- over: $ steps[0].input.cities
+  map:
+    tool: wikipedia
+    arguments:
+      query: $ _ + ' cuisine food culture'
+
+# Step 5: Combine all data for each city
+- evaluate:
+    city_data: |-
+      $ list(
+        zip(
+          steps[0].input.cities,
+          [output['result'] for output in steps[0].output],
+          steps[1].output,
+          steps[2].output,
+          steps[3].output
+        )
+      )
+
+# Step 6: Create comprehensive food tours for each city
+- over: $ _['city_data']
+  parallelism: 3
+  map:
+    prompt:
+    - role: system
+      content: >-
+        $ f'''You are {agent.name}. You are a world-renowned food critic and travel expert who creates exceptional food experiences.
+
+        Your task is to create a delightful one-day food tour that includes:
+        
+        1. Weather-based dining recommendations (indoor vs outdoor)
+        2. Exactly 3 iconic local dishes that represent the city's culinary heritage
+        3. Top-rated restaurants serving these dishes
+        4. A complete breakfast, lunch, and dinner narrative with weather considerations
+        
+        Format your response as follows:
+        
+        ## 🍽️ [CITY NAME] - Ultimate Food Tour
+        
+        ### 🌤️ Today's Weather & Dining Strategy
+        [Weather conditions and whether to prioritize indoor/outdoor dining]
+        
+        ### 🥘 The Three Iconic Dishes You MUST Try
+        1. **[Dish 1]** - [Origin story and cultural significance]
+        2. **[Dish 2]** - [Why it's special to this city]
+        3. **[Dish 3]** - [Unique preparation or ingredients]
+        
+        ### 🍳 Your Delicious Day Unfolds
+        
+        **☀️ BREAKFAST (8:00 AM - 10:00 AM)**
+        - **Restaurant:** [Name and brief description]
+        - **Featured Dish:** [One of the 3 iconic dishes]
+        - **The Experience:** [Narrative about the morning dining experience, considering weather]
+        - **Weather Consideration:** [How weather affects this meal choice]
+        
+        **🌅 LUNCH (12:30 PM - 2:30 PM)**
+        - **Restaurant:** [Name and brief description]
+        - **Featured Dish:** [Second iconic dish]
+        - **The Experience:** [Midday dining narrative with atmosphere details]
+        - **Weather Consideration:** [Indoor/outdoor seating recommendations]
+        
+        **🌆 DINNER (7:00 PM - 9:30 PM)**
+        - **Restaurant:** [Name and brief description]
+        - **Featured Dish:** [Third iconic dish]
+        - **The Experience:** [Evening dining narrative, ambiance, perfect end to the day]
+        - **Weather Consideration:** [How weather enhances or requires adaptation]
+        
+        ### 🏆 Why These Restaurants Made the Cut
+        [Brief explanation of selection criteria and what makes each special]
+        
+        ### 💡 Food Pro Tips
+        - [Weather-specific advice]
+        - [Local dining customs]
+        - [Best times to visit]
+        - [What to avoid]
+        
+        ---
+        
+        Create an engaging, narrative-driven experience that makes the reader excited about each meal!'''
+        
+    - role: user
+      content: >-
+        $ f'''Create an ultimate one-day food tour for:
+        
+        **City:** {_[0]}
+        **Current Weather:** {_[1]}
+        **Local Dishes Research:** {_[2]}
+        **Restaurant Information:** {_[3]}
+        **Food Culture Background:** {_[4]}
+        
+        Focus on creating three distinct dining experiences (breakfast, lunch, dinner) featuring 3 iconic local dishes. 
+        Make sure to factor in the weather conditions for indoor/outdoor dining recommendations.
+        Write in an engaging, storytelling style that makes each meal sound irresistible!'''
+    unwrap: true
+
+# Step 7: Create the final comprehensive food guide
+- evaluate:
+    final_food_guide: |-
+      $ '''# 🍽️ ULTIMATE FOOD TOUR COLLECTION
+      ## Weather-Optimized Culinary Adventures
+      
+      Welcome to your curated collection of food tours! Each tour has been carefully crafted considering today's weather conditions, featuring authentic local cuisine and top-rated dining establishments.
+      
+      ''' + '\n\n'.join(tour for tour in _) + '''
+      
+      ---
+      
+      ## 📊 Tour Summary
+      
+      🌍 **Cities Covered:** ''' + str(len(steps[0].input.cities)) + '''
+      🍽️ **Total Iconic Dishes:** ''' + str(len(steps[0].input.cities) * 3) + '''
+      🏪 **Restaurants Featured:** ''' + str(len(steps[0].input.cities) * 3) + '''
+      🌤️ **Weather-Optimized:** All dining recommendations consider current conditions
+      
+      ### 🎯 What Makes This Guide Special
+      
+      - Weather-Smart Dining: Each recommendation considers current weather for optimal comfort
+      - Cultural Authenticity: Only truly iconic dishes that represent each city's culinary soul
+      - Quality Assurance: Top-rated restaurants verified through multiple review platforms
+      - Complete Experience: Breakfast, lunch, and dinner create a full day of culinary adventure
+      - Storytelling Approach: Each meal is presented as an experience, not just food
+      
+      ### 🍽️ How to Use This Guide
+      
+      1. Check the weather section for each city before your visit
+      2. Make reservations at dinner restaurants (often most popular)
+      3. Arrive hungry - portions are typically generous!
+      4. Embrace local customs mentioned in each section
+      5. Take photos and share your food adventure!
+      
+      **Bon Appétit and Happy Travels! 🥘✈️**
+      '''

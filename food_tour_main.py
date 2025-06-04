@@ -3,7 +3,7 @@ import time
 import yaml
 from datetime import datetime
 
-JULEP_API_KEY = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTQyMjcxNTYsImlhdCI6MTc0OTA0MzE1Niwic3ViIjoiZmViNDU2ZTgtNzk3NC01MDk2LWJkM2UtMGE2YTMwMGYxZmQ0In0.Vm8q8b5SyE-T0Vt9fN6Ur-VjTrzOAvqoKTxGFD-HOS-ujfs85g714DKNBDNy_RUQV_W6xAX6c8JAtBs5UbF3Fw"
+JULEP_API_KEY = "api_key"
 
 def create_food_tour(cities_list):
     """
@@ -44,7 +44,6 @@ def create_food_tour(cities_list):
         }
     )
     
-    # Wait for the execution to complete with detailed progress tracking
     print("🍽️ Creating your ultimate food tour...")
     print(f"📍 Cities: {', '.join(cities_list)}")
     print("⏳ Processing...")
@@ -80,7 +79,7 @@ def create_food_tour(cities_list):
         except Exception as e:
             print(f"   (Processing: {str(e)[:50]}...)")
         
-        time.sleep(3)  # Slightly longer sleep for better UX
+        time.sleep(3) 
     
     print(f"\n🎉 Food tour creation completed with status: {result.status}")
       # Process the result

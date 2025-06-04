@@ -17,14 +17,14 @@ tools:
   integration:
     provider: weather
     setup:
-      openweathermap_api_key: "fd67790ad271d6b486f951b3748dcb62"
+      openweathermap_api_key: "OPENWEATHERMAP_API"
 
 - name: internet_search
   type: integration
   integration:
     provider: brave
     setup:
-      brave_api_key: "BSA0MPVa8Wme1cgCm8ftWNu1VN-IXbw"
+      brave_api_key: "BRAVE_API"
 
 - name: wikipedia
   type: integration
@@ -33,35 +33,30 @@ tools:
 
 
 main:
-# Step 1: Get current weather for all cities
 - over: $ steps[0].input.cities
   map:
     tool: weather
     arguments:
       location: $ _
 
-# Step 2: Search for iconic local dishes for each city
 - over: $ steps[0].input.cities
   map:
     tool: internet_search
     arguments:
       query: $ '"iconic local dishes" "traditional food" "must try" "famous cuisine" ' + _ + ' specialties'
 
-# Step 3: Search for top-rated restaurants in each city
 - over: $ steps[0].input.cities
   map:
     tool: internet_search
     arguments:
       query: $ 'top rated restaurants best dining experience in ' + _ + ' and reviews of that.'
 
-# Step 4: Get additional food culture information from Wikipedia
 - over: $ steps[0].input.cities
   map:
     tool: wikipedia
     arguments:
       query: $ _ + ' cuisine food culture'
 
-# Step 5: Combine all data for each city
 - evaluate:
     city_data: |-
       $ list(
@@ -74,7 +69,6 @@ main:
         )
       )
 
-# Step 6: Create comprehensive food tours for each city
 - over: $ _['city_data']
   parallelism: 3
   map:
